@@ -1,7 +1,9 @@
 use ::std::collections::{BTreeMap, HashMap};
 use ::std::net::Ipv4Addr;
+use chrono::DateTime;
+use chrono::Local;
+use crate::network::{display_connection_string, display_ip_or_host, Connection, Utilization};
 
-use crate::network::{Connection, Utilization};
 
 pub trait Bandwidth {
     fn get_total_bytes_downloaded(&self) -> u128;
@@ -48,12 +50,14 @@ pub struct UIState {
     pub connections: BTreeMap<Connection, ConnectionData>,
     pub total_bytes_downloaded: u128,
     pub total_bytes_uploaded: u128,
+    pub ip_to_host: HashMap<Ipv4Addr, String>,
 }
 
 impl UIState {
     pub fn new(
         connections_to_procs: HashMap<Connection, String>,
         mut network_utilization: Utilization,
+        ip_to_host: HashMap<Ipv4Addr, String>,
     ) -> Self {
         let mut processes: BTreeMap<String, NetworkData> = BTreeMap::new();
         let mut remote_addresses: BTreeMap<Ipv4Addr, NetworkData> = BTreeMap::new();
@@ -90,6 +94,53 @@ impl UIState {
             connections,
             total_bytes_downloaded,
             total_bytes_uploaded,
+            ip_to_host,
         }
+    }
+}
+
+impl ToString for UIState{
+    fn to_string(&self)->String{
+
+        //let ip_to_host = &self.ip_to_host;
+        let local_time: DateTime<Local> = Local::now();
+        let timestamp = local_time.timestamp();
+        let mut lines = Vec::<String>::new();
+        for (process, process_network_data) in &self.processes {
+            lines.push(format!(
+                "process: <{}> \"{}\" up/down Bps: {}/{} connections: {}",
+                timestamp,
+                process,
+                process_network_data.total_bytes_uploaded,
+                process_network_data.total_bytes_downloaded,
+                process_network_data.connection_count
+            ));
+        }
+        for (connection, connection_network_data) in &self.connections {
+            lines.push(format!(
+                "connection: <{}> {} up/down Bps: {}/{} process: \"{}\"",
+                timestamp,
+                display_connection_string(
+                    connection,
+                    &self.ip_to_host,
+                    &connection_network_data.interface_name
+                ),
+                connection_network_data.total_bytes_uploaded,
+                connection_network_data.total_bytes_downloaded,
+                connection_network_data.process_name
+            ));
+        }
+        for (remote_address, remote_address_network_data) in &self.remote_addresses {
+            lines.push(format!(
+                "remote_address: <{}> {} up/down Bps: {}/{} connections: {}",
+                timestamp,
+                display_ip_or_host(*remote_address, &self.ip_to_host),
+                remote_address_network_data.total_bytes_uploaded,
+                remote_address_network_data.total_bytes_downloaded,
+                remote_address_network_data.connection_count
+            ));
+        }
+        
+        lines.join("\n")
     }
 }
