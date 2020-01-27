@@ -1,9 +1,8 @@
+use crate::network::{display_connection_string, display_ip_or_host, Connection, Utilization};
 use ::std::collections::{BTreeMap, HashMap};
 use ::std::net::Ipv4Addr;
 use chrono::DateTime;
 use chrono::Local;
-use crate::network::{display_connection_string, display_ip_or_host, Connection, Utilization};
-
 
 pub trait Bandwidth {
     fn get_total_bytes_downloaded(&self) -> u128;
@@ -99,9 +98,8 @@ impl UIState {
     }
 }
 
-impl ToString for UIState{
-    fn to_string(&self)->String{
-
+impl ToString for UIState {
+    fn to_string(&self) -> String {
         //let ip_to_host = &self.ip_to_host;
         let local_time: DateTime<Local> = Local::now();
         let timestamp = local_time.timestamp();
@@ -140,7 +138,7 @@ impl ToString for UIState{
                 remote_address_network_data.connection_count
             ));
         }
-        
+
         lines.join("\n")
     }
 }

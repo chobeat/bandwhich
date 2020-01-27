@@ -9,7 +9,6 @@ use crate::network::{Connection, Utilization};
 
 use ::std::net::Ipv4Addr;
 
-
 pub struct Ui<B>
 where
     B: Backend,
@@ -17,8 +16,6 @@ where
     terminal: Terminal<B>,
     state: UIState,
 }
-
-
 
 impl<B> Ui<B>
 where
@@ -34,7 +31,10 @@ where
         }
     }
     pub fn output_text(&mut self, write_to_stdout: &mut (dyn FnMut(String) + Send)) {
-        write_to_stdout(self.state.to_string())
+        let output = self.state.to_string();
+        if output.is_empty() {
+            write_to_stdout(output);
+        }
     }
     pub fn draw(&mut self) {
         let state = &self.state;
