@@ -66,4 +66,8 @@ where
         self.terminal.clear().unwrap();
         self.terminal.show_cursor().unwrap();
     }
+
+    pub fn get_state(self)->UIState{
+        self.state
+    }
 }

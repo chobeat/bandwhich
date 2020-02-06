@@ -3,6 +3,8 @@
 mod display;
 mod network;
 mod os;
+mod dump_mode;
+
 #[cfg(test)]
 mod tests;
 
@@ -28,7 +30,7 @@ use ::std::io;
 use ::std::time::Instant;
 use ::termion::raw::IntoRawMode;
 use ::tui::backend::TermionBackend;
-
+use dump_mode::*;
 use structopt::StructOpt;
 
 const DISPLAY_DELTA: time::Duration = time::Duration::from_millis(1000);
@@ -109,7 +111,9 @@ where
 
     let network_utilization = Arc::new(Mutex::new(Utilization::new()));
     let ui = Arc::new(Mutex::new(Ui::new(terminal_backend)));
+    let dumper = Arc::new(Mutex::new(Dumper::new(ui.lock().unwrap().get_state())));
 
+    let dump_mode =  Arc::new(AtomicBool::new(false)).clone();
     if !raw_mode {
         active_threads.push(
             thread::Builder::new()
@@ -134,6 +138,8 @@ where
         .spawn({
             let running = running.clone();
             let network_utilization = network_utilization.clone();
+            let dump_mode = dump_mode.clone();
+            let dumper = dumper.clone();
             move || {
                 while running.load(Ordering::Acquire) {
                     let render_start_time = Instant::now();
@@ -153,6 +159,11 @@ where
                     {
                         let mut ui = ui.lock().unwrap();
                         ui.update_state(connections_to_procs, utilization, ip_to_host);
+                        if dump_mode.load(Ordering::Relaxed){
+                            let mut dumper = dumper.lock().unwrap();
+                            dumper.update_state(ui.get_state());
+                            dumper.dump();
+                        }
                         if raw_mode {
                             ui.output_text(&mut write_to_stdout);
                         } else {
@@ -178,6 +189,7 @@ where
             .spawn({
                 let running = running.clone();
                 let display_handler = display_handler.thread().clone();
+                let dump_mode = dump_mode.clone();
                 move || {
                     for evt in keyboard_events {
                         match evt {
@@ -186,6 +198,9 @@ where
                                 cleanup();
                                 display_handler.unpark();
                                 break;
+                            }
+                            Event::Key(Key::Char('d')) => {
+                                dump_mode.fetch_xor(true,Ordering::Relaxed);
                             }
                             _ => (),
                         };
