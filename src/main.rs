@@ -110,9 +110,9 @@ where
     let raw_mode = opts.raw;
 
     let network_utilization = Arc::new(Mutex::new(Utilization::new()));
-    let _ui= Ui::new(terminal_backend);
-    let ui = Arc::new(Mutex::new(_ui));
-    let dumper = Arc::new(Mutex::new(Dumper::new(&_ui.get_state())));
+
+    let ui = Arc::new(Mutex::new(Ui::new(terminal_backend)));
+    let dumper = Arc::new(Mutex::new(Dumper::new(ui.clone())));
 
     let dump_mode =  Arc::new(AtomicBool::new(false)).clone();
     if !raw_mode {
@@ -140,7 +140,6 @@ where
             let running = running.clone();
             let network_utilization = network_utilization.clone();
             let dump_mode = dump_mode.clone();
-            let dumper = dumper.clone();
             move || {
                 while running.load(Ordering::Acquire) {
                     let render_start_time = Instant::now();
@@ -161,8 +160,7 @@ where
                         let mut ui = ui.lock().unwrap();
                         ui.update_state(connections_to_procs, utilization, ip_to_host);
                         if dump_mode.load(Ordering::Relaxed){
-                            let mut dumper_inner = dumper.lock().unwrap();
-                            dumper_inner.update_state(ui.get_state());
+                            let dumper_inner = dumper.lock().unwrap();
                             dumper_inner.dump();
                         }
                         if raw_mode {

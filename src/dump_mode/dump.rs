@@ -1,15 +1,25 @@
-use crate::display::UIState;
+
+use std::sync::{Mutex, Arc};
+use crate::display::Ui;
+use tui::backend::Backend;
 
 
-pub struct Dumper<'a>
+pub struct Dumper<B>
+    where
+        B: Backend
 {
-    state: &'a UIState,
+
+    ui: Arc<Mutex<Ui<B>>>,
 }
 
-impl<'a> Dumper<'a>{
-    pub fn new(state: &'a UIState)->Self{
-        Dumper{state}
+impl<B> Dumper<B>
+    where
+        B: Backend
+{
+
+    pub fn new(ui: Arc<Mutex<Ui<B>>>)->Self{
+        Dumper{ui}
     }
-    pub fn update_state(self, ui_state:UIState){println!("update")}
-    pub fn dump(self){println!("dump")}
+    pub fn update_state(&self){println!("update")}
+    pub fn dump(&self){println!("dump")}
 }
