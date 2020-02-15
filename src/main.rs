@@ -110,8 +110,9 @@ where
     let raw_mode = opts.raw;
 
     let network_utilization = Arc::new(Mutex::new(Utilization::new()));
-    let ui = Arc::new(Mutex::new(Ui::new(terminal_backend)));
-    let dumper = Arc::new(Mutex::new(Dumper::new(ui.lock().unwrap().get_state())));
+    let _ui= Ui::new(terminal_backend);
+    let ui = Arc::new(Mutex::new(_ui));
+    let dumper = Arc::new(Mutex::new(Dumper::new(&_ui.get_state())));
 
     let dump_mode =  Arc::new(AtomicBool::new(false)).clone();
     if !raw_mode {
@@ -160,9 +161,9 @@ where
                         let mut ui = ui.lock().unwrap();
                         ui.update_state(connections_to_procs, utilization, ip_to_host);
                         if dump_mode.load(Ordering::Relaxed){
-                            let mut dumper = dumper.lock().unwrap();
-                            dumper.update_state(ui.get_state());
-                            dumper.dump();
+                            let mut dumper_inner = dumper.lock().unwrap();
+                            dumper_inner.update_state(ui.get_state());
+                            dumper_inner.dump();
                         }
                         if raw_mode {
                             ui.output_text(&mut write_to_stdout);
