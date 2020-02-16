@@ -2,6 +2,8 @@
 use std::sync::{Mutex, Arc};
 use crate::display::Ui;
 use tui::backend::Backend;
+use std::fs::File;
+use std::io::Write;
 
 
 pub struct Dumper<B>
@@ -10,7 +12,9 @@ pub struct Dumper<B>
 {
 
     ui: Arc<Mutex<Ui<B>>>,
+    file: &mut File
 }
+
 
 impl<B> Dumper<B>
     where
@@ -18,8 +22,23 @@ impl<B> Dumper<B>
 {
 
     pub fn new(ui: Arc<Mutex<Ui<B>>>)->Self{
-        Dumper{ui}
+
+        let mut file = File::create("/tmp").unwrap();
+        Dumper{ui,file}
     }
     pub fn update_state(&self){println!("update")}
-    pub fn dump(&self){println!("dump")}
+    pub fn dump(&self) {
+        let mut ui = self.ui.lock().unwrap();
+        let mut write_to_file: Box<dyn FnMut(String) + Send> =
+            Box::new({
+                         move |output: String| {
+                             self.file.write_all(output.as_bytes());
+                         }
+                     });
+        ui.output_text(&mut write_to_file);
+    }
+}
+
+fn create_write_to_file(file:&File){
+
 }
