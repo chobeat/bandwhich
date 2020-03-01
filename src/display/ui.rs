@@ -32,7 +32,7 @@ where
     }
     pub fn output_text(&mut self, write_to_stdout: &mut (dyn FnMut(String) + Send)) {
         let output = self.state.to_string();
-        if output.is_empty() {
+        if !output.is_empty() {
             write_to_stdout(output);
         }
     }
